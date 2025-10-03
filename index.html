@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" /><output></output>
+  <title>Ask-Out Adventure</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="title">WILL YOU GO OUT WITH ME?</div>
+
+  <div class="wrap">
+    <canvas id="game" width="352" height="264" aria-label="Game canvas"></canvas>
+  </div>
+
+  <!-- YES-only prompts -->
+  <div class="overlay" id="promptOverlay" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2 id="promptTitle">Are you sure?</h2>
+      <p id="promptText">Are you sure?</p>
+      <div class="row">
+        <button id="promptYes" class="btn sel">Yes</button>
+        <button id="promptNo" class="btn">No</button>
+      </div>
+      <div class="kbd-hint">Enter to confirm • Shift to go back • Arrows to move</div>
+    </div>
+  </div>  
+
+  <!-- Message box (first-try YES surprise) -->
+  <div class="overlay" id="msgOverlay" aria-hidden="true">
+    <div class="card">
+      <p id="msgText"></p>
+      <div class="row">
+        <button id="msgOk" class="btn sel">OK</button>
+      </div>
+      <div class="kbd-hint">Enter to close</div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
