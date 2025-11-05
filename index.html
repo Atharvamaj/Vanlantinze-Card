@@ -2,41 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" /><output></output>
   <title>Ask-Out Adventure</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="title">WILL YOU GO OUT WITH ME?</div>
+  <!--
+    Outer page background color is set in style.css (body { background: #f7f1e9 }).
+    The canvas (game screen) is drawn by game.js; map, battle, and love scenes use #86c06c.
+  -->
 
-  <div class="wrap">
-    <canvas id="game" width="352" height="264" aria-label="Game canvas"></canvas>
-  </div>
+  <main class="page">
+    <div class="frame">
+      <!-- Native resolution: 352x256 (aspect 11:8). You can change, but keep ratio. -->
+      <canvas id="game" width="352" height="256"></canvas>
 
-  <!-- YES-only prompts -->
-  <div class="overlay" id="promptOverlay" role="dialog" aria-modal="true">
-    <div class="card">
+      <div class="hud">
+        <h1>Will you go out with me?</h1>
+        <p>Move with arrows • Enter = interact • Shift = back</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Confirm / peer note overlay -->
+  <div id="promptOverlay" class="overlay" style="display:none">
+    <div class="panel">
       <h2 id="promptTitle">Are you sure?</h2>
       <p id="promptText">Are you sure?</p>
       <div class="row">
-        <button id="promptYes" class="btn sel">Yes</button>
-        <button id="promptNo" class="btn">No</button>
+        <button id="promptYes" class="btn primary">Yes</button>
+        <button id="promptNo" class="btn">Back</button>
       </div>
-      <div class="kbd-hint">Enter to confirm • Shift to go back • Arrows to move</div>
-    </div>
-  </div>  
-
-  <!-- Message box (first-try YES surprise) -->
-  <div class="overlay" id="msgOverlay" aria-hidden="true">
-    <div class="card">
-      <p id="msgText"></p>
-      <div class="row">
-        <button id="msgOk" class="btn sel">OK</button>
-      </div>
-      <div class="kbd-hint">Enter to close</div>
+      <p class="hint">Use ← → to select, Enter to confirm, Shift to cancel.</p>
     </div>
   </div>
 
-  <script src="game.js"></script>
+  <!-- Message overlay -->
+  <div id="msgOverlay" class="overlay" style="display:none">
+    <div class="panel">
+      <p id="msgText"></p>
+      <div class="row">
+        <button id="msgOk" class="btn primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="game.js"></script>
 </body>
 </html>

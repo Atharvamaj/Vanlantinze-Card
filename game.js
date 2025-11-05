@@ -1,37 +1,59 @@
-/* Ask-Out Adventure — final build with flat overworld color (#65ff00)
-   - Overworld map (where the cat walks) uses a solid color instead of field.png
-   - YES flow: pit → confirm → peer-note → battle (can’t lose) → love scene → if first-try, message shows AFTER heart
-   - NO flow: pit → battle (can’t win) → 5s black fall (with line) → back to map (NO zone disappears after 6 tries)
-   - Battle log shown TOP-LEFT; Enter debounced; inputs locked during overlays/black fall
-*/
+/* =========================================================================
+   Ask-Out Adventure — focused build for your goals
+   -------------------------------------------------------------------------
+   ✅ Overworld, Battle, and Love scene backgrounds use #86c06c (canvas fill).
+   ✅ Outer page background (around the canvas) is #f7f1e9 (in style.css).
+   ✅ “Before You Leave” dialog shows ONLY if player has NOT interacted:
+      - no YES or NO clicked AND no battle started.
+   -------------------------------------------------------------------------
+   QUICK CUSTOMIZATION (search “CHANGE ME”):
+   - Swap your art and audio file names in ASSETS below.
+   - Adjust YES/NO zone rectangles if needed.
+   - Balance moves and stats in MOVES / FOE_MOVES and actTurn().
+   ========================================================================= */
 
+/* ========================= ASSETS (CHANGE ME) ============================ */
 const ASSETS = {
-  // BACKGROUND: 'assets/bg/field.png', // not used anymore (we paint #65ff00)
+  /* Player walking sprites: two frames per direction */
   PLAYER_SPRITE: {
-    up:    ['assets/hero/b1 - Cat.png','assets/hero/b2 - Cat.png'],
-    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],
-    left:  ['assets/hero/c1l - Cat.png','assets/hero/c2l - Cat.png'],
-    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png']
+    up:    ['assets/hero/b1 - Cat.png','assets/hero/b2 - Cat.png'],   // CHANGE ME
+    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],   // CHANGE ME
+    left:  ['assets/hero/c1l - Cat.png','assets/hero/c2l - Cat.png'], // CHANGE ME
+    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png']  // CHANGE ME
   },
+
+  /* Battle sprites (Psyduck back; Tangela front; optional frog used in love scene) */
   MONS: {
-    playerBack:  'assets/mons/psyduck_back.png',
-    yesFoeFront: 'assets/mons/tangela.png',
-    extras: ['assets/mons/f1 - Frog.png']
+    playerBack:  'assets/mons/psyduck_back.png', // CHANGE ME
+    yesFoeFront: 'assets/mons/tangela.png',      // CHANGE ME
+    extras:      ['assets/mons/f1 - Frog.png']   // optional
   },
-  MUSIC: { map: 'assets/music_map.mp3', battle: 'assets/music_battle.mp3', happy: 'assets/music_happy.mp3' },
-  CUTSCENE:{ heart:'assets/ui/love.png', pit:'assets/bg/pit.png' }
+
+  /* Music (set to null if you don’t have files yet) */
+  MUSIC: {
+    map:    'assets/music_map.mp3',    // CHANGE ME
+    battle: 'assets/music_battle.mp3', // CHANGE ME
+    happy:  'assets/music_happy.mp3'   // CHANGE ME
+  },
+
+  /* UI/props */
+  CUTSCENE: {
+    heart: 'assets/ui/love.png', // CHANGE ME
+    pit:   'assets/bg/pit.png'   // CHANGE ME
+  }
 };
 
-/* -------- battle sprite target sizes -------- */
+/* -------- Battle sprite target sizes (tweak for your image scale) */
 const BATTLE_SPRITE_TARGET_W = { playerBack: 88, foeFront: 88 };
 
+/* -------- Movement/animation tunables -------- */
 const TILE=16, PLAYER_SPEED=3, WALK_SWITCH_MS=180;
 
 /* ===== Canvas & DOM ===== */
 const cvs=document.getElementById('game'), ctx=cvs.getContext('2d');
 const W=cvs.width, H=cvs.height;
 
-/* Overlays (DECLARE ONCE) */
+/* ----- Overlays ----- */
 const promptOverlay=document.getElementById('promptOverlay');
 const promptTitle  =document.getElementById('promptTitle');
 const promptText   =document.getElementById('promptText');
@@ -42,16 +64,20 @@ const msgOverlay=document.getElementById('msgOverlay');
 const msgTextEl  =document.getElementById('msgText');
 const msgOk      =document.getElementById('msgOk');
 
-/* Prompt state (DECLARE ONCE) */
+/* ----- Prompt state ----- */
 let promptStage=null, promptSel=0;
 
-/* Ask-once flag for YES prompts + small interaction cooldown */
+/* ----- “Ask-once” gating for YES flow + input cooldown ----- */
 let yesPromptSeen = false;
 let interactCooldownUntil = 0;
 
-/* ----------------- input ----------------- */
+/* ----- Has the player interacted? (controls the beforeunload prompt) ----- */
+let hasInteractedOnce = false;
+
+/* ----------------- Input ----------------- */
 const Keys=new Set();
 let enterLock=false; // debounce Enter
+
 function overlaysActive(){
   return promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid' || state!=='map' || pitActive || blackScreenActive;
 }
@@ -60,7 +86,6 @@ function inputLocked(){ return pitActive || blackScreenActive; }
 addEventListener('keydown',e=>{
   const hot=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Shift'];
   if(hot.includes(e.key)) e.preventDefault();
-
   if (inputLocked() || promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid') return;
 
   if(e.key==='Enter'){ if(enterLock) return; enterLock=true; }
@@ -71,14 +96,13 @@ addEventListener('keyup',e=>{
   Keys.delete(e.key);
 });
 
-/* ----------------- loaders ----------------- */
+/* ----------------- Loaders ----------------- */
 function loadImage(src){return new Promise(res=>{if(!src)return res(null);const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
 function loadAudio(src,loop=true,vol=.45){if(!src)return null;const a=new Audio(src);a.loop=loop;a.volume=vol;return a;}
-const Assets={bg:null,hero:{up:[],down:[],left:[],right:[]},monPlayer:null,foeDefault:null,extraFoes:[],music:{map:null,battle:null,happy:null},heart:null,pit:null};
+const Assets={hero:{up:[],down:[],left:[],right:[]},monPlayer:null,foeDefault:null,extraFoes:[],music:{map:null,battle:null,happy:null},heart:null,pit:null};
 
 async function preload(){
-  const jobs=[]; // no field.png now — we paint #65ff00
-
+  const jobs=[];
   for(const d of ['up','down','left','right']){
     for(const p of ASSETS.PLAYER_SPRITE[d]) jobs.push(loadImage(p).then(i=>{ if(i) Assets.hero[d].push(i); }));
   }
@@ -88,12 +112,14 @@ async function preload(){
   jobs.push(loadImage(ASSETS.CUTSCENE.heart).then(i=>Assets.heart=i));
   jobs.push(loadImage(ASSETS.CUTSCENE.pit).then(i=>Assets.pit=i));
   await Promise.all(jobs);
+
+  // Music (will start after first gesture)
   Assets.music.map    = loadAudio(ASSETS.MUSIC.map,true,.45);
   Assets.music.battle = loadAudio(ASSETS.MUSIC.battle,true,.45);
   Assets.music.happy  = loadAudio(ASSETS.MUSIC.happy,true,.5);
 }
 
-/* ----------------- world & player ----------------- */
+/* ----------------- World & Player ----------------- */
 const player={x:2,y:2,dir:'down',animTimer:0,frameIndex:0};
 
 function movePlayer(dx,dy,dt){
@@ -106,12 +132,12 @@ function movePlayer(dx,dy,dt){
   else{ player.frameIndex=0; player.animTimer=0; }
 }
 
-/* zones (YES left, NO right) — invisible boxes, but we show text only */
+/* -------- YES/NO zones (invisible) — canvas + floating labels show text -------- */
 const YES_ZONE={x:6*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 const NO_ZONE ={x:cvs.width-9*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 function inZone(px,py,z){return z.enabled && px>=z.x && px<=z.x+z.w && py>=z.y && py<=z.y+z.h}
 
-/* NO lines & counters */
+/* -------- NO-side lines -------- */
 const NO_LINES=[
   "Oh, this is embarrassing… I hope this doesn’t make things awkward between us.",
   "I know I am not handsome, but I didn’t know I was so unwanted.",
@@ -123,23 +149,23 @@ const NO_LINES=[
 let noShown=0, noCount=0; const MAX_NO=6;
 const YES_FIRST_TRY_LINE="Wow, did not expect that! Your chances of saying yes were grim, like 0.09 percent… nice!";
 
-/* visible YES/NO labels (HTML) + canvas text only (no tinted boxes) */
+/* -------- Floating YES/NO labels -------- */
 const yesLbl=document.createElement('div'); yesLbl.className='hit-label'; yesLbl.textContent='YES'; document.body.appendChild(yesLbl);
-const noLbl =document.createElement('div');  noLbl.className='hit-label';  noLbl.textContent='NO';  document.body.appendChild(noLbl);
+const noLbl =document.createElement('div');  noLbl .className='hit-label';  noLbl .textContent='NO';  document.body.appendChild(noLbl);
 
 let pitActive=false, blackScreenActive=false;
 
-/* ----------------- music ----------------- */
+/* ----------------- Music ----------------- */
 function switchMusic(which){
   [Assets.music.battle,Assets.music.map,Assets.music.happy].forEach(a=>a&&a.pause());
   const pick = which==='battle'?Assets.music.battle : which==='happy'?(Assets.music.happy||Assets.music.map) : Assets.music.map;
   pick && pick.play().catch(()=>{});
 }
 
-/* ----------------- render ----------------- */
+/* ----------------- Render: Overworld (and Love) -----------------
+   Canvas background color for these scenes = #86c06c */
 function drawWorld(){
-  // Overworld background = solid #65ff00
-  ctx.fillStyle = '#9bbc0f';
+  ctx.fillStyle = '#86c06c';
   ctx.fillRect(0,0,W,H);
 
   const px=player.x*TILE+TILE/2, py=player.y*TILE+TILE/2;
@@ -147,14 +173,14 @@ function drawWorld(){
   if(img) ctx.drawImage(img, Math.round(px-img.width/2), Math.round(py-img.height/2));
   else { ctx.fillStyle='#0d1e0d'; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.fillStyle='white'; ctx.font='10px system-ui'; ctx.fillText('CAT?', px-12, py-12); }
 
-  // Canvas text labels ONLY (no tinted rectangles)
+  // Canvas text labels
   if(!overlaysActive()){
     ctx.fillStyle='#0b1d0b'; ctx.font='bold 14px system-ui';
     if(YES_ZONE.enabled) ctx.fillText('YES', YES_ZONE.x, YES_ZONE.y-6);
     if(NO_ZONE.enabled)  ctx.fillText('NO',  NO_ZONE.x,  NO_ZONE.y-6);
   }
 
-  // Place floating HTML labels
+  // Floating HTML labels positioned over canvas center of zones
   const r=cvs.getBoundingClientRect();
   function placeLabel(z,el){
     const show=!overlaysActive() && z.enabled;
@@ -165,7 +191,7 @@ function drawWorld(){
   placeLabel(YES_ZONE, yesLbl); placeLabel(NO_ZONE, noLbl);
 }
 
-/* ----------------- pit intro ----------------- */
+/* ----------------- Pit flash before battle ----------------- */
 function showPitIntro(next,duration=900){
   pitActive=true;
   const o=document.createElement('canvas'); o.width=W;o.height=H;o.style.position='absolute';
@@ -177,7 +203,6 @@ function showPitIntro(next,duration=900){
 
   const px=player.x*TILE+TILE/2, py=player.y*TILE+TILE/2;
   const draw=()=>{
-    // draw current overworld as background for the pit flash
     ctx.drawImage(cvs,0,0,W,H,0,0,W,H);
     ox.drawImage(cvs,0,0);
     if(Assets.pit){ const pw=Assets.pit.width, ph=Assets.pit.height; ox.drawImage(Assets.pit, Math.round(px-pw/2), Math.round(py-ph/2)); }
@@ -186,7 +211,7 @@ function showPitIntro(next,duration=900){
   const t0=performance.now(); (function step(t){ draw(); if(t-t0<duration) requestAnimationFrame(step); else { o.remove(); pitActive=false; next&&next(); } })(t0);
 }
 
-/* ----------------- black fall (NO) — 5s + walking cycle ----------------- */
+/* ----------------- Black fall (NO) — 5s + walking cycle ----------------- */
 function drawWrappedText(ctx2,text,x,y,maxW,lh,maxLines=4){
   const words=(text||'').split(/\s+/); let line='', lines=[], i=0;
   while(i<words.length){
@@ -197,7 +222,7 @@ function drawWrappedText(ctx2,text,x,y,maxW,lh,maxLines=4){
   if(i<words.length){ let last=lines.at(-1)||''; while(ctx2.measureText(last+'…').width>maxW && last.length>0) last=last.slice(0,-1); lines[lines.length-1]=last+'…'; }
   for(let j=0;j<lines.length;j++) ctx2.fillText(lines[j],x,y+j*lh);
 }
-function playBlackFall(duration=5000,message=''){ // 5s
+function playBlackFall(duration=5000,message=''){
   blackScreenActive=true;
 
   const o=document.createElement('canvas'); o.width=W;o.height=H;o.style.position='absolute';
@@ -233,7 +258,7 @@ function playBlackFall(duration=5000,message=''){ // 5s
   })(t0);
 }
 
-/* ----------------- prompts ----------------- */
+/* ----------------- Prompts ----------------- */
 function showPrompt(){ promptOverlay.style.display='grid'; promptSel=0; applySel(); }
 function hidePrompt(){ promptOverlay.style.display='none'; }
 function applySel(){ promptYes.classList.toggle('sel',promptSel===0); promptNo.classList.toggle('sel',promptSel===1); }
@@ -244,14 +269,16 @@ promptYes.onclick=()=>{
   if(promptStage==='confirm'){
     openPeerNote();
   } else {
-    yesPromptSeen = true;
+    yesPromptSeen = true;      // future YES skips confirm
+    hasInteractedOnce = true;  // counts as interaction (disables leave prompt)
     hidePrompt();
     interactCooldownUntil = performance.now() + 500;
     startBattle('yes');
   }
 };
-promptNo .onclick=()=>hidePrompt();
+promptNo .onclick=()=>{ hasInteractedOnce = true; hidePrompt(); };
 
+/* Overlay-specific keyboard */
 addEventListener('keydown',e=>{
   if(promptOverlay.style.display==='grid'){
     if(e.key==='ArrowLeft'){promptSel=0;applySel();}
@@ -263,10 +290,10 @@ addEventListener('keydown',e=>{
   }
 });
 
-/* ----------------- message box ----------------- */
+/* ----------------- Message box ----------------- */
 function showMessage(text,cb){ msgTextEl.textContent=text; msgOverlay.style.display='grid'; msgOk.onclick=()=>{ msgOverlay.style.display='none'; cb&&cb(); }; }
 
-/* ----------------- battle core ----------------- */
+/* ----------------- Battle Core ----------------- */
 const MOVES=[
   {name:'Water Gun', pow:18, acc:0.95, kind:'spec'},
   {name:'Confusion', pow:20, acc:0.90, kind:'spec'},
@@ -284,7 +311,9 @@ function makeMon(name,hp,atk,def,spd){return {name,maxhp:hp,hp,atk,def,spd,buffs
 const Battle={ active:false, mode:'yes', phase:'choose', sel:0, log:[], playerMon:null, foeMon:null, foeImage:null, afterNoMessage:'' };
 
 function startBattle(mode, afterNoMessage=''){
-  Battle.mode = mode; Battle.active=true; Battle.phase='choose'; Battle.sel=0; Battle.log=[ mode==='yes' ? 'A wild Tangela appears!' : 'A wild Tangela challenges you!' ];
+  hasInteractedOnce = true; // entering battle = interaction
+  Battle.mode = mode; Battle.active=true; Battle.phase='choose'; Battle.sel=0;
+  Battle.log=[ mode==='yes' ? 'A wild Tangela appears!' : 'A wild Tangela challenges you!' ];
   Battle.playerMon=makeMon('Psyduck',72,18,12,12);
   Battle.foeMon   =makeMon('Tangela',62,13,10,9);
   Battle.foeImage = (Assets.extraFoes.length>0 && Math.random()<0.35) ? Assets.extraFoes[Math.floor(Math.random()*Assets.extraFoes.length)] : (Assets.foeDefault||null);
@@ -316,19 +345,19 @@ function drawHP(mon,x,y,w=120){
   ctx.fillStyle='#0b1d0b'; ctx.font='10px system-ui'; ctx.fillText(mon.name,x+6,y+12);
 }
 
+/* -------- Battle render (background = #86c06c) -------- */
 function drawBattle(){
-  // simple grassy battle background (unchanged)
-  ctx.fillStyle='#86a80f'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#74920d'; ctx.beginPath(); ctx.ellipse(92,200,70,18,0,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(260,120,70,18,0,0,Math.PI*2); ctx.fill();
+  // Flat battle background — same green as overworld/love
+  ctx.fillStyle='#86c06c';
+  ctx.fillRect(0,0,W,H);
 
-  // scaled Psyduck back
+  // Player back sprite (scaled)
   if(Assets.monPlayer){
     const tW=BATTLE_SPRITE_TARGET_W.playerBack, s=tW/Assets.monPlayer.width;
     const dw=tW, dh=Math.round(Assets.monPlayer.height*s);
     ctx.drawImage(Assets.monPlayer, 24, 120 + (100 - dh), dw, dh);
   }
-  // scaled foe front
+  // Foe front sprite (scaled)
   const foe=Battle.foeImage;
   if(foe){
     const tW=BATTLE_SPRITE_TARGET_W.foeFront, s=tW/foe.width;
@@ -336,9 +365,11 @@ function drawBattle(){
     ctx.drawImage(foe, W-24-dw, 36 + (100 - dh)/2, dw, dh);
   }
 
-  drawHP(Battle.playerMon,10,230); drawHP(Battle.foeMon, W-10-120, 10);
+  // HP bars
+  drawHP(Battle.playerMon,10,230);
+  drawHP(Battle.foeMon, W-10-120, 10);
 
-  // --- battle log panel (TOP-LEFT) ---
+  // Battle log panel (TOP-LEFT)
   const LOG_W = 220, LOG_H = 46;
   ctx.fillStyle = 'rgba(0,0,0,.18)';
   ctx.fillRect(0, 0, LOG_W, LOG_H);
@@ -348,6 +379,7 @@ function drawBattle(){
   ctx.fillText(r[0] || '', 10, 18);
   ctx.fillText(r[1] || '', 10, 34);
 
+  // Move selection
   if(Battle.phase==='choose'){
     ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(W-170,H-60,170,60);
     [0,1,2,3].forEach((i,k)=>{
@@ -358,6 +390,7 @@ function drawBattle(){
   }
 }
 
+/* -------- Battle turn logic -------- */
 function chooseMove(){
   if(inputLocked()) return;
   const dx = Keys.has('ArrowRight')?1 : Keys.has('ArrowLeft')?-1 : 0;
@@ -391,13 +424,13 @@ function actTurn(pMove){
 
     if(who==='player'){
       apply(Battle.playerMon,Battle.foeMon,pMove);
-      if(Battle.mode==='no'){ if(Battle.foeMon.hp<=0) Battle.foeMon.hp=1; }
+      if(Battle.mode==='no'){ if(Battle.foeMon.hp<=0) Battle.foeMon.hp=1; } // NO side can’t win
     }else{
       if(Battle.mode==='yes'){
         const saved=Battle.foeMon.atk; Battle.foeMon.atk=Math.max(1,Math.floor(saved*0.35));
         apply(Battle.foeMon,Battle.playerMon,fMove);
         Battle.foeMon.atk=saved;
-        if(Battle.playerMon.hp<=0) Battle.playerMon.hp=1;
+        if(Battle.playerMon.hp<=0) Battle.playerMon.hp=1; // YES side can’t lose
       }else{
         const saved=Battle.foeMon.atk; Battle.foeMon.atk=Math.floor(saved*1.25);
         apply(Battle.foeMon,Battle.playerMon,fMove);
@@ -416,7 +449,7 @@ function actTurn(pMove){
   }
 }
 
-/* ----------------- love (YES end) ----------------- */
+/* ----------------- Love scene (YES end) ----------------- */
 let love={
   active:false,t0:0,catX:-40,catY:H-72,frogX:Math.round(W*0.65),frogY:H-92,
   arriving:true,heartScale:0,showHeart:false,frogImg:null,
@@ -457,8 +490,7 @@ function updateLoveScene(now){
 }
 
 function drawLoveScene(){
-  // love scene uses the same flat overworld color
-  ctx.fillStyle = '#9bbc0f';
+  ctx.fillStyle = '#86c06c';
   ctx.fillRect(0,0,W,H);
 
   const frog=love.frogImg; if(frog) ctx.drawImage(frog, love.frogX, love.frogY);
@@ -478,19 +510,20 @@ function drawLoveScene(){
   }
 }
 
-/* ----------------- interact ----------------- */
+/* ----------------- Interact (Enter) ----------------- */
 function handleInteract(){
   if(inputLocked() || promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid') return;
 
   const px=player.x*TILE+TILE/2, py=player.y*TILE+TILE/2;
 
   if(inZone(px,py,YES_ZONE)){
-    if (performance.now() < interactCooldownUntil) return; // guard if Enter held
+    if (performance.now() < interactCooldownUntil) return;
     showPitIntro(()=>{ 
       if (!yesPromptSeen) {
-        openConfirm();         // first time: confirm → peer-note → battle
+        openConfirm();         // confirm → peer-note → battle
       } else {
-        startBattle('yes');    // next times: straight to battle
+        hasInteractedOnce = true;
+        startBattle('yes');    // later: straight to battle
       }
     });
     return;
@@ -500,11 +533,11 @@ function handleInteract(){
     const line=NO_LINES[Math.min(noShown,NO_LINES.length-1)];
     if(noShown<NO_LINES.length) noShown++;
     noCount++; if(noCount>=MAX_NO) NO_ZONE.enabled=false;
-    showPitIntro(()=>{ startBattle('no', line); });
+    showPitIntro(()=>{ hasInteractedOnce = true; startBattle('no', line); });
   }
 }
 
-/* ----------------- loop ----------------- */
+/* ----------------- Game loop ----------------- */
 let state='map', last=performance.now();
 function update(dt,now){
   if(state==='map'){
@@ -524,13 +557,27 @@ function update(dt,now){
 }
 function loop(now){ const dt=now-last; last=now; ctx.clearRect(0,0,W,H); update(dt,now); requestAnimationFrame(loop); }
 
-/* ----------------- boot ----------------- */
+/* ----------------- Boot ----------------- */
 (function init(){
   preload().then(()=>{
     state='map';
+    // First user gesture unlocks audio autoplay
     const kick=()=>{document.removeEventListener('pointerdown',kick);document.removeEventListener('keydown',kick); switchMusic('map');};
     document.addEventListener('pointerdown',kick,{once:true});
     document.addEventListener('keydown',kick,{once:true});
     requestAnimationFrame(loop);
   });
 })();
+
+/* ----------------- Leave / close-site prompt -----------------
+   Show only if the player has NOT interacted yet:
+   (no YES/NO clicks and no battle entered). */
+window.addEventListener('beforeunload', (e)=>{
+  if(!hasInteractedOnce){
+    e.preventDefault();
+    e.returnValue =
+      "Sorry to put you in this position. I apologize—nothing like this will ever happen again.\n" +
+      "Damn, come on, at least play the game.";
+    return e.returnValue;
+  }
+});

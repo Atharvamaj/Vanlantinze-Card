@@ -1,39 +1,119 @@
+/* -------- Page + layout -------- */
 :root{
-  --ink:#0d1e0d; --muted:#2d4a2d; --bg:#8bac0f; --ui:#9bbc0f;
-  --hpGood:#1ec28b; --hpWarn:#f4c542; --hpBad:#e45858;
+  --page-bg: #f7f1e9;   /* around the game */
+  --panel-bg: #ffffff;
+  --panel-border: #dad4c9;
+  --ink: #0b1d0b;
+  --ink-muted: #3a583a;
+  --accent: #4a8a4a;
+  --accent-strong: #2f6c2f;
 }
-*{box-sizing:border-box}
-html,body{height:100%}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
 body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  display:flex; flex-direction:column; align-items:center;
+  margin: 0;
+  font-family: system-ui, ui-sans-serif, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--page-bg); /* requested color around the game screen */
 }
-.title{margin:10px 0 6px; font-weight:800; text-transform:uppercase; text-align:center;}
-.wrap{display:grid; place-items:center; flex:1; width:100%}
-canvas{
-  width:min(92vmin,980px);
-  height:calc(min(92vmin,980px)*0.75);
-  border-radius:16px;
-  box-shadow:0 20px 60px rgba(0,0,0,.35);
-  background:var(--ui);
-  image-rendering:pixelated; image-rendering:crisp-edges;
+
+.page{
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
 }
-.overlay{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);z-index:10;}
-.card{background:var(--ui);border:1px solid rgba(0,0,0,.2);border-radius:14px;padding:18px;width:min(90vw,520px);}
-.card h2{margin:6px 0 12px}
-.card p{margin:8px 0 14px; color:#1f371f}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{background:#5f8b1b;color:#0b1d0b;border:1px solid rgba(0,0,0,.25);border-radius:10px;padding:.6rem .9rem;cursor:pointer;min-width:96px;text-align:center;}
-.btn:hover{filter:brightness(1.08)}
-.sel{outline:2px solid #0b1d0b;}
-.kbd-hint{margin-top:10px;font-size:.85rem;color:#254a25;opacity:.9}
+
+.frame{
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.hud{
+  text-align: center;
+  color: var(--ink-muted);
+}
+.hud h1{
+  font-size: 18px;
+  margin: 4px 0 0;
+}
+.hud p{
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+/* -------- Canvas -------- */
+#game{
+  width: min(90vw, 704px);     /* scale up, keeps pixels crisp */
+  height: auto;
+  image-rendering: pixelated;
+  border-radius: 8px;
+  display: block;
+}
+
+/* -------- Overlays -------- */
+.overlay{
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.25);
+  z-index: 20000;
+}
+
+.panel{
+  width: min(92vw, 460px);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 16px 16px 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+
+.panel h2{
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.panel p{ margin: 8px 0; }
+
+.row{ display: flex; gap: 10px; }
+
+.btn{
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn.primary{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent-strong);
+}
+.btn:focus{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.hint{ font-size: 12px; color: var(--ink-muted); }
+
+/* floating YES / NO labels */
 .hit-label{
-  position:absolute; transform:translate(-50%, -50%);
-  background:#5f8b1b; color:#0b1d0b; padding:.25rem .5rem;
-  border:1px solid rgba(0,0,0,.25); border-radius:8px;
-  font-weight:800; pointer-events:none; user-select:none;
-  z-index: 9999;
-  font-size: 14px;
-  letter-spacing: .5px;
+  position: absolute;
+  transform: translate(-50%,-50%);
+  font: 700 14px/1 system-ui, ui-sans-serif;
+  color: var(--accent-strong);
+  background: rgba(255,255,255,.75);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  pointer-events: none;
+  z-index: 1000;
 }
+
+.sel{ filter: saturate(1.2) drop-shadow(0 1px 0 rgba(0,0,0,.1)); }
