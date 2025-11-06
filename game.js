@@ -1,10 +1,4 @@
-/* =========================================================================
-   Ask-Out Adventure — focused build for your goals
-   -------------------------------------------------------------------------
-   ✅ Overworld, Battle, and Love scene backgrounds use #86c06c (canvas fill).
-   ✅ Outer page background (around the canvas) is #f7f1e9 (in style.css).
-   ✅ “Before You Leave” dialog shows ONLY if player has NOT interacted:
-      - no YES or NO clicked AND no battle started.
+/*
    -------------------------------------------------------------------------
    QUICK CUSTOMIZATION (search “CHANGE ME”):
    - Swap your art and audio file names in ASSETS below.
@@ -140,14 +134,14 @@ function inZone(px,py,z){return z.enabled && px>=z.x && px<=z.x+z.w && py>=z.y &
 /* -------- NO-side lines -------- */
 const NO_LINES=[
   "Oh, this is embarrassing… I hope this doesn’t make things awkward between us.",
-  "I know I am not handsome, but I didn’t know I was so unwanted.",
-  "I hope you’re not already taken.",
-  "Hay, just maybe we can just stay friends.",
-  "Guess that’s a solid no… I’ll try not to take it too hard.",
-  "Alright… I’ll stop asking now. Thanks for being honest with me."
+  "I know I’m not handsome, but I didn’t know I was so unwanted!",
+  "I hope you’re not getting peer-pressured!",
+  "Hey, maybe we can just stay friends.",
+  "I hope you're not taken already.",
+  "I didn’t know you hated programmers that much."
 ];
 let noShown=0, noCount=0; const MAX_NO=6;
-const YES_FIRST_TRY_LINE="Wow, did not expect that! Your chances of saying yes were grim, like 0.09 percent… nice!";
+//const YES_FIRST_TRY_LINE="Wow, did not expect that! Your chances of saying yes were grim, like 0.09 percent… nice!";
 
 /* -------- Floating YES/NO labels -------- */
 const yesLbl=document.createElement('div'); yesLbl.className='hit-label'; yesLbl.textContent='YES'; document.body.appendChild(yesLbl);
@@ -174,12 +168,12 @@ function drawWorld(){
   else { ctx.fillStyle='#0d1e0d'; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.fillStyle='white'; ctx.font='10px system-ui'; ctx.fillText('CAT?', px-12, py-12); }
 
   // Canvas text labels
-  if(!overlaysActive()){
+  /*if(!overlaysActive()){
     ctx.fillStyle='#0b1d0b'; ctx.font='bold 14px system-ui';
     if(YES_ZONE.enabled) ctx.fillText('YES', YES_ZONE.x, YES_ZONE.y-6);
     if(NO_ZONE.enabled)  ctx.fillText('NO',  NO_ZONE.x,  NO_ZONE.y-6);
   }
-
+*/
   // Floating HTML labels positioned over canvas center of zones
   const r=cvs.getBoundingClientRect();
   function placeLabel(z,el){
@@ -480,7 +474,7 @@ function updateLoveScene(now){
         love.showHeart=true;
         if(love.firstTryPending && !love.firstTryShown){
           love.firstTryShown = true;
-          setTimeout(()=>{ showMessage(YES_FIRST_TRY_LINE); }, 1200);
+          //setTimeout(()=>{ showMessage(YES_FIRST_TRY_LINE); }, 1200);
         }
       }, 600);
     }
@@ -537,7 +531,10 @@ function handleInteract(){
   }
 }
 
-/* ----------------- Game loop ----------------- */
+/* ----------------- Gam
+
+
+e loop ----------------- */
 let state='map', last=performance.now();
 function update(dt,now){
   if(state==='map'){
