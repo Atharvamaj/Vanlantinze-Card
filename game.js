@@ -168,12 +168,12 @@ function drawWorld(){
   else { ctx.fillStyle='#0d1e0d'; ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.fill(); ctx.fillStyle='white'; ctx.font='10px system-ui'; ctx.fillText('CAT?', px-12, py-12); }
 
   // Canvas text labels
-  /*if(!overlaysActive()){
+  if(!overlaysActive()){
     ctx.fillStyle='#0b1d0b'; ctx.font='bold 14px system-ui';
     if(YES_ZONE.enabled) ctx.fillText('YES', YES_ZONE.x, YES_ZONE.y-6);
     if(NO_ZONE.enabled)  ctx.fillText('NO',  NO_ZONE.x,  NO_ZONE.y-6);
   }
-*/
+
   // Floating HTML labels positioned over canvas center of zones
   const r=cvs.getBoundingClientRect();
   function placeLabel(z,el){
@@ -531,10 +531,7 @@ function handleInteract(){
   }
 }
 
-/* ----------------- Gam
-
-
-e loop ----------------- */
+/* ----------------- Game loop ----------------- */
 let state='map', last=performance.now();
 function update(dt,now){
   if(state==='map'){
