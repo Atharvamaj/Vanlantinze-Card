@@ -1,53 +1,40 @@
-/*
-   -------------------------------------------------------------------------
-   QUICK CUSTOMIZATION (search “CHANGE ME”):
-   - Swap your art and audio file names in ASSETS below.
-   - Adjust YES/NO zone rectangles if needed.
-   - Balance moves and stats in MOVES / FOE_MOVES and actTurn().
-   ========================================================================= */
-
-/* ========================= ASSETS (CHANGE ME) ============================ */
 const ASSETS = {
-  /* Player walking sprites: two frames per direction */
   PLAYER_SPRITE: {
-    up:    ['assets/hero/b1 - Cat.png','assets/hero/b2 - Cat.png'],   // CHANGE ME
-    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],   // CHANGE ME
-    left:  ['assets/hero/c1l - Cat.png','assets/hero/c2l - Cat.png'], // CHANGE ME
-    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png']  // CHANGE ME
+    up:    ['assets/hero/b1 - Cat.png','assets/hero/b2 - Cat.png'],   
+    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],  
+    left:  ['assets/hero/c1l - Cat.png','assets/hero/c2l - Cat.png'], 
+    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png'] 
   },
 
-  /* Battle sprites (Psyduck back; Tangela front; optional frog used in love scene) */
+
   MONS: {
-    playerBack:  'assets/mons/psyduck_back.png', // CHANGE ME
-    yesFoeFront: 'assets/mons/tangela.png',      // CHANGE ME
-    extras:      ['assets/mons/f1 - Frog.png']   // optional
+    playerBack:  'assets/mons/psyduck_back.png', 
+    yesFoeFront: 'assets/mons/tangela.png',      
+    extras:      ['assets/mons/f1 - Frog.png']  
   },
 
-  /* Music (set to null if you don’t have files yet) */
+
   MUSIC: {
-    map:    'assets/music_map.mp3',    // CHANGE ME
-    battle: 'assets/music_battle.mp3', // CHANGE ME
-    happy:  'assets/music_happy.mp3'   // CHANGE ME
+    map:    'assets/music_map.mp3',     
+    battle: 'assets/music_battle.mp3',  
+    happy:  'assets/music_happy.mp3'    
   },
 
   /* UI/props */
   CUTSCENE: {
-    heart: 'assets/ui/love.png', // CHANGE ME
-    pit:   'assets/bg/pit.png'   // CHANGE ME
+    heart: 'assets/ui/love.png',  
+    pit:   'assets/bg/pit.png'    
   }
 };
 
-/* -------- Battle sprite target sizes (tweak for your image scale) */
+
 const BATTLE_SPRITE_TARGET_W = { playerBack: 88, foeFront: 88 };
 
-/* -------- Movement/animation tunables -------- */
 const TILE=16, PLAYER_SPEED=3, WALK_SWITCH_MS=180;
 
-/* ===== Canvas & DOM ===== */
 const cvs=document.getElementById('game'), ctx=cvs.getContext('2d');
 const W=cvs.width, H=cvs.height;
 
-/* ----- Overlays ----- */
 const promptOverlay=document.getElementById('promptOverlay');
 const promptTitle  =document.getElementById('promptTitle');
 const promptText   =document.getElementById('promptText');
@@ -58,19 +45,17 @@ const msgOverlay=document.getElementById('msgOverlay');
 const msgTextEl  =document.getElementById('msgText');
 const msgOk      =document.getElementById('msgOk');
 
-/* ----- Prompt state ----- */
+
 let promptStage=null, promptSel=0;
 
-/* ----- “Ask-once” gating for YES flow + input cooldown ----- */
+
 let yesPromptSeen = false;
 let interactCooldownUntil = 0;
 
-/* ----- Has the player interacted? (controls the beforeunload prompt) ----- */
 let hasInteractedOnce = false;
 
-/* ----------------- Input ----------------- */
 const Keys=new Set();
-let enterLock=false; // debounce Enter
+let enterLock=false;
 
 function overlaysActive(){
   return promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid' || state!=='map' || pitActive || blackScreenActive;
@@ -90,7 +75,7 @@ addEventListener('keyup',e=>{
   Keys.delete(e.key);
 });
 
-/* ----------------- Loaders ----------------- */
+
 function loadImage(src){return new Promise(res=>{if(!src)return res(null);const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
 function loadAudio(src,loop=true,vol=.45){if(!src)return null;const a=new Audio(src);a.loop=loop;a.volume=vol;return a;}
 const Assets={hero:{up:[],down:[],left:[],right:[]},monPlayer:null,foeDefault:null,extraFoes:[],music:{map:null,battle:null,happy:null},heart:null,pit:null};
@@ -107,13 +92,13 @@ async function preload(){
   jobs.push(loadImage(ASSETS.CUTSCENE.pit).then(i=>Assets.pit=i));
   await Promise.all(jobs);
 
-  // Music (will start after first gesture)
+
   Assets.music.map    = loadAudio(ASSETS.MUSIC.map,true,.45);
   Assets.music.battle = loadAudio(ASSETS.MUSIC.battle,true,.45);
   Assets.music.happy  = loadAudio(ASSETS.MUSIC.happy,true,.5);
 }
 
-/* ----------------- World & Player ----------------- */
+
 const player={x:2,y:2,dir:'down',animTimer:0,frameIndex:0};
 
 function movePlayer(dx,dy,dt){
@@ -126,12 +111,11 @@ function movePlayer(dx,dy,dt){
   else{ player.frameIndex=0; player.animTimer=0; }
 }
 
-/* -------- YES/NO zones (invisible) — canvas + floating labels show text -------- */
+
 const YES_ZONE={x:6*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 const NO_ZONE ={x:cvs.width-9*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 function inZone(px,py,z){return z.enabled && px>=z.x && px<=z.x+z.w && py>=z.y && py<=z.y+z.h}
 
-/* -------- NO-side lines -------- */
 const NO_LINES=[
   "Oh, this is embarrassing… I hope this doesn’t make things awkward between us.",
   "I know I’m not handsome, but I didn’t know I was so unwanted!",
@@ -141,23 +125,15 @@ const NO_LINES=[
   "I didn’t know you hated programmers that much."
 ];
 let noShown=0, noCount=0; const MAX_NO=6;
-//const YES_FIRST_TRY_LINE="Wow, did not expect that! Your chances of saying yes were grim, like 0.09 percent… nice!";
 
-/* -------- Floating YES/NO labels -------- */
-const yesLbl=document.createElement('div'); yesLbl.className='hit-label'; yesLbl.textContent='YES'; document.body.appendChild(yesLbl);
-const noLbl =document.createElement('div');  noLbl .className='hit-label';  noLbl .textContent='NO';  document.body.appendChild(noLbl);
 
-let pitActive=false, blackScreenActive=false;
-
-/* ----------------- Music ----------------- */
 function switchMusic(which){
   [Assets.music.battle,Assets.music.map,Assets.music.happy].forEach(a=>a&&a.pause());
   const pick = which==='battle'?Assets.music.battle : which==='happy'?(Assets.music.happy||Assets.music.map) : Assets.music.map;
   pick && pick.play().catch(()=>{});
 }
 
-/* ----------------- Render: Overworld (and Love) -----------------
-   Canvas background color for these scenes = #86c06c */
+
 function drawWorld(){
   ctx.fillStyle = '#86c06c';
   ctx.fillRect(0,0,W,H);
@@ -173,8 +149,6 @@ function drawWorld(){
     if(YES_ZONE.enabled) ctx.fillText('YES', YES_ZONE.x, YES_ZONE.y-6);
     if(NO_ZONE.enabled)  ctx.fillText('NO',  NO_ZONE.x,  NO_ZONE.y-6);
   }
-
-  // Floating HTML labels positioned over canvas center of zones
   const r=cvs.getBoundingClientRect();
   function placeLabel(z,el){
     const show=!overlaysActive() && z.enabled;
@@ -184,8 +158,6 @@ function drawWorld(){
   }
   placeLabel(YES_ZONE, yesLbl); placeLabel(NO_ZONE, noLbl);
 }
-
-/* ----------------- Pit flash before battle ----------------- */
 function showPitIntro(next,duration=900){
   pitActive=true;
   const o=document.createElement('canvas'); o.width=W;o.height=H;o.style.position='absolute';
@@ -204,8 +176,6 @@ function showPitIntro(next,duration=900){
   };
   const t0=performance.now(); (function step(t){ draw(); if(t-t0<duration) requestAnimationFrame(step); else { o.remove(); pitActive=false; next&&next(); } })(t0);
 }
-
-/* ----------------- Black fall (NO) — 5s + walking cycle ----------------- */
 function drawWrappedText(ctx2,text,x,y,maxW,lh,maxLines=4){
   const words=(text||'').split(/\s+/); let line='', lines=[], i=0;
   while(i<words.length){
@@ -252,27 +222,18 @@ function playBlackFall(duration=5000,message=''){
   })(t0);
 }
 
-/* ----------------- Prompts ----------------- */
-function showPrompt(){ promptOverlay.style.display='grid'; promptSel=0; applySel(); }
-function hidePrompt(){ promptOverlay.style.display='none'; }
-function applySel(){ promptYes.classList.toggle('sel',promptSel===0); promptNo.classList.toggle('sel',promptSel===1); }
-function openConfirm(){ promptStage='confirm'; promptTitle.textContent='Are you sure?'; promptText.textContent='Are you sure?'; showPrompt(); }
-function openPeerNote(){ promptStage='peer'; promptTitle.textContent='Note'; promptText.textContent='I hope you’re not getting peer-pressured.'; showPrompt(); }
-
 promptYes.onclick=()=>{ 
   if(promptStage==='confirm'){
     openPeerNote();
   } else {
-    yesPromptSeen = true;      // future YES skips confirm
-    hasInteractedOnce = true;  // counts as interaction (disables leave prompt)
+    yesPromptSeen = true;     
+    hasInteractedOnce = true; 
     hidePrompt();
     interactCooldownUntil = performance.now() + 500;
     startBattle('yes');
   }
 };
 promptNo .onclick=()=>{ hasInteractedOnce = true; hidePrompt(); };
-
-/* Overlay-specific keyboard */
 addEventListener('keydown',e=>{
   if(promptOverlay.style.display==='grid'){
     if(e.key==='ArrowLeft'){promptSel=0;applySel();}
@@ -283,11 +244,8 @@ addEventListener('keydown',e=>{
     if(e.key==='Enter') { msgOverlay.style.display='none'; }
   }
 });
-
-/* ----------------- Message box ----------------- */
 function showMessage(text,cb){ msgTextEl.textContent=text; msgOverlay.style.display='grid'; msgOk.onclick=()=>{ msgOverlay.style.display='none'; cb&&cb(); }; }
 
-/* ----------------- Battle Core ----------------- */
 const MOVES=[
   {name:'Water Gun', pow:18, acc:0.95, kind:'spec'},
   {name:'Confusion', pow:20, acc:0.90, kind:'spec'},
@@ -339,19 +297,17 @@ function drawHP(mon,x,y,w=120){
   ctx.fillStyle='#0b1d0b'; ctx.font='10px system-ui'; ctx.fillText(mon.name,x+6,y+12);
 }
 
-/* -------- Battle render (background = #86c06c) -------- */
 function drawBattle(){
-  // Flat battle background — same green as overworld/love
+
   ctx.fillStyle='#86c06c';
   ctx.fillRect(0,0,W,H);
 
-  // Player back sprite (scaled)
   if(Assets.monPlayer){
     const tW=BATTLE_SPRITE_TARGET_W.playerBack, s=tW/Assets.monPlayer.width;
     const dw=tW, dh=Math.round(Assets.monPlayer.height*s);
     ctx.drawImage(Assets.monPlayer, 24, 120 + (100 - dh), dw, dh);
   }
-  // Foe front sprite (scaled)
+ 
   const foe=Battle.foeImage;
   if(foe){
     const tW=BATTLE_SPRITE_TARGET_W.foeFront, s=tW/foe.width;
@@ -359,11 +315,9 @@ function drawBattle(){
     ctx.drawImage(foe, W-24-dw, 36 + (100 - dh)/2, dw, dh);
   }
 
-  // HP bars
+
   drawHP(Battle.playerMon,10,230);
   drawHP(Battle.foeMon, W-10-120, 10);
-
-  // Battle log panel (TOP-LEFT)
   const LOG_W = 220, LOG_H = 46;
   ctx.fillStyle = 'rgba(0,0,0,.18)';
   ctx.fillRect(0, 0, LOG_W, LOG_H);
@@ -383,8 +337,6 @@ function drawBattle(){
     });
   }
 }
-
-/* -------- Battle turn logic -------- */
 function chooseMove(){
   if(inputLocked()) return;
   const dx = Keys.has('ArrowRight')?1 : Keys.has('ArrowLeft')?-1 : 0;
@@ -443,7 +395,6 @@ function actTurn(pMove){
   }
 }
 
-/* ----------------- Love scene (YES end) ----------------- */
 let love={
   active:false,t0:0,catX:-40,catY:H-72,frogX:Math.round(W*0.65),frogY:H-92,
   arriving:true,heartScale:0,showHeart:false,frogImg:null,
@@ -474,7 +425,6 @@ function updateLoveScene(now){
         love.showHeart=true;
         if(love.firstTryPending && !love.firstTryShown){
           love.firstTryShown = true;
-          //setTimeout(()=>{ showMessage(YES_FIRST_TRY_LINE); }, 1200);
         }
       }, 600);
     }
@@ -503,8 +453,6 @@ function drawLoveScene(){
     ctx.restore();
   }
 }
-
-/* ----------------- Interact (Enter) ----------------- */
 function handleInteract(){
   if(inputLocked() || promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid') return;
 
@@ -514,10 +462,10 @@ function handleInteract(){
     if (performance.now() < interactCooldownUntil) return;
     showPitIntro(()=>{ 
       if (!yesPromptSeen) {
-        openConfirm();         // confirm → peer-note → battle
+        openConfirm();         
       } else {
         hasInteractedOnce = true;
-        startBattle('yes');    // later: straight to battle
+        startBattle('yes'); 
       }
     });
     return;
@@ -531,7 +479,6 @@ function handleInteract(){
   }
 }
 
-/* ----------------- Game loop ----------------- */
 let state='map', last=performance.now();
 function update(dt,now){
   if(state==='map'){
@@ -551,7 +498,6 @@ function update(dt,now){
 }
 function loop(now){ const dt=now-last; last=now; ctx.clearRect(0,0,W,H); update(dt,now); requestAnimationFrame(loop); }
 
-/* ----------------- Boot ----------------- */
 (function init(){
   preload().then(()=>{
     state='map';
@@ -563,9 +509,6 @@ function loop(now){ const dt=now-last; last=now; ctx.clearRect(0,0,W,H); update(
   });
 })();
 
-/* ----------------- Leave / close-site prompt -----------------
-   Show only if the player has NOT interacted yet:
-   (no YES/NO clicks and no battle entered). */
 window.addEventListener('beforeunload', (e)=>{
   if(!hasInteractedOnce){
     e.preventDefault();
