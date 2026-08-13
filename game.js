@@ -117,12 +117,6 @@ const NO_ZONE ={x:cvs.width-9*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 function inZone(px,py,z){return z.enabled && px>=z.x && px<=z.x+z.w && py>=z.y && py<=z.y+z.h}
 
 const NO_LINES=[
-  "Oh, this is embarrassing… I hope this doesn’t make things awkward between us.",
-  "I know I’m not handsome, but I didn’t know I was so unwanted!",
-  "I hope you’re not getting peer-pressured!",
-  "Hey, maybe we can just stay friends.",
-  "I hope you're not taken already.",
-  "I didn’t know you hated programmers that much."
 ];
 let noShown=0, noCount=0; const MAX_NO=6;
 
