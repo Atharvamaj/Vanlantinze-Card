@@ -1,32 +1,29 @@
+
 const ASSETS = {
+
   PLAYER_SPRITE: {
     up:    ['assets/hero/b1 - Cat.png','assets/hero/b2 - Cat.png'],   
-    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],  
+    down:  ['assets/hero/f1 - Cat.png','assets/hero/f2 - Cat.png'],   
     left:  ['assets/hero/c1l - Cat.png','assets/hero/c2l - Cat.png'], 
-    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png'] 
+    right: ['assets/hero/c1r - Cat.png','assets/hero/c2r - Cat.png']  
   },
-
-
   MONS: {
     playerBack:  'assets/mons/psyduck_back.png', 
     yesFoeFront: 'assets/mons/tangela.png',      
-    extras:      ['assets/mons/f1 - Frog.png']  
+    extras:      ['assets/mons/f1 - Frog.png'] 
   },
-
 
   MUSIC: {
-    map:    'assets/music_map.mp3',     
-    battle: 'assets/music_battle.mp3',  
-    happy:  'assets/music_happy.mp3'    
+    map:    'assets/music_map.mp3',    
+    battle: 'assets/music_battle.mp3', 
+    happy:  'assets/music_happy.mp3'   
   },
 
-  /* UI/props */
   CUTSCENE: {
-    heart: 'assets/ui/love.png',  
-    pit:   'assets/bg/pit.png'    
+    heart: 'assets/ui/love.png', 
+    pit:   'assets/bg/pit.png' 
   }
 };
-
 
 const BATTLE_SPRITE_TARGET_W = { playerBack: 88, foeFront: 88 };
 
@@ -45,9 +42,7 @@ const msgOverlay=document.getElementById('msgOverlay');
 const msgTextEl  =document.getElementById('msgText');
 const msgOk      =document.getElementById('msgOk');
 
-
 let promptStage=null, promptSel=0;
-
 
 let yesPromptSeen = false;
 let interactCooldownUntil = 0;
@@ -55,7 +50,7 @@ let interactCooldownUntil = 0;
 let hasInteractedOnce = false;
 
 const Keys=new Set();
-let enterLock=false;
+let enterLock=false; 
 
 function overlaysActive(){
   return promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid' || state!=='map' || pitActive || blackScreenActive;
@@ -75,7 +70,6 @@ addEventListener('keyup',e=>{
   Keys.delete(e.key);
 });
 
-
 function loadImage(src){return new Promise(res=>{if(!src)return res(null);const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
 function loadAudio(src,loop=true,vol=.45){if(!src)return null;const a=new Audio(src);a.loop=loop;a.volume=vol;return a;}
 const Assets={hero:{up:[],down:[],left:[],right:[]},monPlayer:null,foeDefault:null,extraFoes:[],music:{map:null,battle:null,happy:null},heart:null,pit:null};
@@ -92,12 +86,10 @@ async function preload(){
   jobs.push(loadImage(ASSETS.CUTSCENE.pit).then(i=>Assets.pit=i));
   await Promise.all(jobs);
 
-
   Assets.music.map    = loadAudio(ASSETS.MUSIC.map,true,.45);
   Assets.music.battle = loadAudio(ASSETS.MUSIC.battle,true,.45);
   Assets.music.happy  = loadAudio(ASSETS.MUSIC.happy,true,.5);
 }
-
 
 const player={x:2,y:2,dir:'down',animTimer:0,frameIndex:0};
 
@@ -111,7 +103,6 @@ function movePlayer(dx,dy,dt){
   else{ player.frameIndex=0; player.animTimer=0; }
 }
 
-
 const YES_ZONE={x:6*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 const NO_ZONE ={x:cvs.width-9*TILE,y:5*TILE,w:3*TILE,h:3*TILE,enabled:true};
 function inZone(px,py,z){return z.enabled && px>=z.x && px<=z.x+z.w && py>=z.y && py<=z.y+z.h}
@@ -120,13 +111,16 @@ const NO_LINES=[
 ];
 let noShown=0, noCount=0; const MAX_NO=6;
 
+const yesLbl=document.createElement('div'); yesLbl.className='hit-label'; yesLbl.textContent='YES'; document.body.appendChild(yesLbl);
+const noLbl =document.createElement('div');  noLbl .className='hit-label';  noLbl .textContent='NO';  document.body.appendChild(noLbl);
+
+let pitActive=false, blackScreenActive=false;
 
 function switchMusic(which){
   [Assets.music.battle,Assets.music.map,Assets.music.happy].forEach(a=>a&&a.pause());
   const pick = which==='battle'?Assets.music.battle : which==='happy'?(Assets.music.happy||Assets.music.map) : Assets.music.map;
   pick && pick.play().catch(()=>{});
 }
-
 
 function drawWorld(){
   ctx.fillStyle = '#86c06c';
@@ -152,6 +146,7 @@ function drawWorld(){
   }
   placeLabel(YES_ZONE, yesLbl); placeLabel(NO_ZONE, noLbl);
 }
+
 function showPitIntro(next,duration=900){
   pitActive=true;
   const o=document.createElement('canvas'); o.width=W;o.height=H;o.style.position='absolute';
@@ -194,7 +189,7 @@ function playBlackFall(duration=5000,message=''){
   const sw=downFrames[0]?.width||32, sh=downFrames[0]?.height||32;
   const startY=(H-sh)/2, endY=H+sh, dist=endY-startY, T=Math.max(800,duration);
   const cx=(W-sw)/2; const t0=performance.now();
-  const ease=t=>{const x=t/T; return x*x;};
+  const ease=t=>{const x=t/T; return x*x;}; 
 
   (function step(t){
     const el=t-t0;
@@ -216,18 +211,27 @@ function playBlackFall(duration=5000,message=''){
   })(t0);
 }
 
+
+function showPrompt(){ promptOverlay.style.display='grid'; promptSel=0; applySel(); }
+function hidePrompt(){ promptOverlay.style.display='none'; }
+function applySel(){ promptYes.classList.toggle('sel',promptSel===0); promptNo.classList.toggle('sel',promptSel===1); }
+function openConfirm(){ promptStage='confirm'; promptTitle.textContent='Are you sure?'; promptText.textContent='Are you sure?'; showPrompt(); }
+function openPeerNote(){ promptStage='peer'; promptTitle.textContent='Note'; promptText.textContent='I hope you’re not getting peer-pressured.'; showPrompt(); }
+
 promptYes.onclick=()=>{ 
   if(promptStage==='confirm'){
     openPeerNote();
   } else {
     yesPromptSeen = true;     
-    hasInteractedOnce = true; 
+    hasInteractedOnce = true;  
     hidePrompt();
     interactCooldownUntil = performance.now() + 500;
     startBattle('yes');
   }
 };
 promptNo .onclick=()=>{ hasInteractedOnce = true; hidePrompt(); };
+
+
 addEventListener('keydown',e=>{
   if(promptOverlay.style.display==='grid'){
     if(e.key==='ArrowLeft'){promptSel=0;applySel();}
@@ -238,7 +242,9 @@ addEventListener('keydown',e=>{
     if(e.key==='Enter') { msgOverlay.style.display='none'; }
   }
 });
+
 function showMessage(text,cb){ msgTextEl.textContent=text; msgOverlay.style.display='grid'; msgOk.onclick=()=>{ msgOverlay.style.display='none'; cb&&cb(); }; }
+
 
 const MOVES=[
   {name:'Water Gun', pow:18, acc:0.95, kind:'spec'},
@@ -257,7 +263,7 @@ function makeMon(name,hp,atk,def,spd){return {name,maxhp:hp,hp,atk,def,spd,buffs
 const Battle={ active:false, mode:'yes', phase:'choose', sel:0, log:[], playerMon:null, foeMon:null, foeImage:null, afterNoMessage:'' };
 
 function startBattle(mode, afterNoMessage=''){
-  hasInteractedOnce = true;
+  hasInteractedOnce = true; 
   Battle.mode = mode; Battle.active=true; Battle.phase='choose'; Battle.sel=0;
   Battle.log=[ mode==='yes' ? 'A wild Tangela appears!' : 'A wild Tangela challenges you!' ];
   Battle.playerMon=makeMon('Psyduck',72,18,12,12);
@@ -290,7 +296,6 @@ function drawHP(mon,x,y,w=120){
   ctx.strokeStyle='rgba(0,0,0,.25)'; ctx.strokeRect(x+.5,y+.5,w-1,17);
   ctx.fillStyle='#0b1d0b'; ctx.font='10px system-ui'; ctx.fillText(mon.name,x+6,y+12);
 }
-
 function drawBattle(){
 
   ctx.fillStyle='#86c06c';
@@ -301,7 +306,7 @@ function drawBattle(){
     const dw=tW, dh=Math.round(Assets.monPlayer.height*s);
     ctx.drawImage(Assets.monPlayer, 24, 120 + (100 - dh), dw, dh);
   }
- 
+
   const foe=Battle.foeImage;
   if(foe){
     const tW=BATTLE_SPRITE_TARGET_W.foeFront, s=tW/foe.width;
@@ -312,6 +317,8 @@ function drawBattle(){
 
   drawHP(Battle.playerMon,10,230);
   drawHP(Battle.foeMon, W-10-120, 10);
+
+
   const LOG_W = 220, LOG_H = 46;
   ctx.fillStyle = 'rgba(0,0,0,.18)';
   ctx.fillRect(0, 0, LOG_W, LOG_H);
@@ -320,6 +327,7 @@ function drawBattle(){
   const r = Battle.log.slice(-2);
   ctx.fillText(r[0] || '', 10, 18);
   ctx.fillText(r[1] || '', 10, 34);
+
 
   if(Battle.phase==='choose'){
     ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(W-170,H-60,170,60);
@@ -330,6 +338,7 @@ function drawBattle(){
     });
   }
 }
+
 function chooseMove(){
   if(inputLocked()) return;
   const dx = Keys.has('ArrowRight')?1 : Keys.has('ArrowLeft')?-1 : 0;
@@ -369,7 +378,7 @@ function actTurn(pMove){
         const saved=Battle.foeMon.atk; Battle.foeMon.atk=Math.max(1,Math.floor(saved*0.35));
         apply(Battle.foeMon,Battle.playerMon,fMove);
         Battle.foeMon.atk=saved;
-        if(Battle.playerMon.hp<=0) Battle.playerMon.hp=1; // YES side can’t lose
+        if(Battle.playerMon.hp<=0) Battle.playerMon.hp=1; 
       }else{
         const saved=Battle.foeMon.atk; Battle.foeMon.atk=Math.floor(saved*1.25);
         apply(Battle.foeMon,Battle.playerMon,fMove);
@@ -446,6 +455,7 @@ function drawLoveScene(){
     ctx.restore();
   }
 }
+
 function handleInteract(){
   if(inputLocked() || promptOverlay.style.display==='grid' || msgOverlay.style.display==='grid') return;
 
@@ -458,7 +468,7 @@ function handleInteract(){
         openConfirm();         
       } else {
         hasInteractedOnce = true;
-        startBattle('yes'); 
+        startBattle('yes');    
       }
     });
     return;
@@ -471,7 +481,6 @@ function handleInteract(){
     showPitIntro(()=>{ hasInteractedOnce = true; startBattle('no', line); });
   }
 }
-
 let state='map', last=performance.now();
 function update(dt,now){
   if(state==='map'){
