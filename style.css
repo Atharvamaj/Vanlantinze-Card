@@ -16,7 +16,7 @@ body{
   margin: 0;
   font-family: system-ui, ui-sans-serif, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   color: var(--ink);
-  background: var(--page-bg); /* requested color around the game screen */
+  background: var(--page-bg); 
 }
 
 .page{
@@ -49,16 +49,14 @@ body{
   margin: 4px 0 0;
 }
 
-/* -------- Canvas -------- */
 #game{
-  width: min(90vw, 704px);     /* scale up, keeps pixels crisp */
+  width: min(90vw, 704px);    
   height: auto;
   image-rendering: pixelated;
   border-radius: 8px;
   display: block;
 }
 
-/* -------- Overlays -------- */
 .overlay{
   position: fixed;
   inset: 0;
@@ -102,7 +100,6 @@ body{
 
 .hint{ font-size: 12px; color: var(--ink-muted); }
 
-/* floating YES / NO labels */
 .hit-label{
   position: absolute;
   transform: translate(-50%,-50%);
