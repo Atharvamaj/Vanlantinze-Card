@@ -200,7 +200,7 @@ function playBlackFall(duration=5000,message=''){
   const sw=downFrames[0]?.width||32, sh=downFrames[0]?.height||32;
   const startY=(H-sh)/2, endY=H+sh, dist=endY-startY, T=Math.max(800,duration);
   const cx=(W-sw)/2; const t0=performance.now();
-  const ease=t=>{const x=t/T; return x*x;}; // quadratic ease
+  const ease=t=>{const x=t/T; return x*x;};
 
   (function step(t){
     const el=t-t0;
@@ -263,7 +263,7 @@ function makeMon(name,hp,atk,def,spd){return {name,maxhp:hp,hp,atk,def,spd,buffs
 const Battle={ active:false, mode:'yes', phase:'choose', sel:0, log:[], playerMon:null, foeMon:null, foeImage:null, afterNoMessage:'' };
 
 function startBattle(mode, afterNoMessage=''){
-  hasInteractedOnce = true; // entering battle = interaction
+  hasInteractedOnce = true;
   Battle.mode = mode; Battle.active=true; Battle.phase='choose'; Battle.sel=0;
   Battle.log=[ mode==='yes' ? 'A wild Tangela appears!' : 'A wild Tangela challenges you!' ];
   Battle.playerMon=makeMon('Psyduck',72,18,12,12);
@@ -327,7 +327,6 @@ function drawBattle(){
   ctx.fillText(r[0] || '', 10, 18);
   ctx.fillText(r[1] || '', 10, 34);
 
-  // Move selection
   if(Battle.phase==='choose'){
     ctx.fillStyle='rgba(0,0,0,.12)'; ctx.fillRect(W-170,H-60,170,60);
     [0,1,2,3].forEach((i,k)=>{
@@ -370,7 +369,7 @@ function actTurn(pMove){
 
     if(who==='player'){
       apply(Battle.playerMon,Battle.foeMon,pMove);
-      if(Battle.mode==='no'){ if(Battle.foeMon.hp<=0) Battle.foeMon.hp=1; } // NO side can’t win
+      if(Battle.mode==='no'){ if(Battle.foeMon.hp<=0) Battle.foeMon.hp=1; }
     }else{
       if(Battle.mode==='yes'){
         const saved=Battle.foeMon.atk; Battle.foeMon.atk=Math.max(1,Math.floor(saved*0.35));
@@ -501,7 +500,6 @@ function loop(now){ const dt=now-last; last=now; ctx.clearRect(0,0,W,H); update(
 (function init(){
   preload().then(()=>{
     state='map';
-    // First user gesture unlocks audio autoplay
     const kick=()=>{document.removeEventListener('pointerdown',kick);document.removeEventListener('keydown',kick); switchMusic('map');};
     document.addEventListener('pointerdown',kick,{once:true});
     document.addEventListener('keydown',kick,{once:true});
